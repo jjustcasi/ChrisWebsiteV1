@@ -17,7 +17,10 @@ For a persistent production deployment, add a MySQL database service in Railway 
 NODE_ENV=production
 USE_MYSQL=true
 REQUIRE_MYSQL=true
-DB_HOST=your-mysql-host
+# Prefer the Railway MySQL variables from the database service:
+# MYSQLHOST, MYSQLPORT, MYSQLUSER, MYSQLPASSWORD, MYSQLDATABASE
+# The app also accepts DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME if you want to map them manually.
+DB_HOST=mysql.railway.internal
 DB_PORT=3306
 DB_USER=your_mysql_user
 DB_PASSWORD=your_mysql_password

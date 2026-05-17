@@ -4,35 +4,49 @@ const path = require('path');
 const mysql = require('mysql2/promise');
 
 const {
-  DB_HOST = 'localhost',
-  DB_PORT = '3306',
-  DB_USER = '',
+  DB_HOST,
+  DB_PORT,
+  DB_USER,
   DB_PASSWORD,
   DB_NAME,
+  MYSQLHOST,
+  MYSQLPORT,
+  MYSQLUSER,
+  MYSQLPASSWORD,
+  MYSQLDATABASE,
   REQUIRE_MYSQL,
   USE_MYSQL,
 } = process.env;
 
-const DB_PASSWORD_SET = Object.prototype.hasOwnProperty.call(process.env, 'DB_PASSWORD');
+const resolvedDbHost = DB_HOST || MYSQLHOST || 'localhost';
+const resolvedDbPort = DB_PORT || MYSQLPORT || '3306';
+const resolvedDbUser = DB_USER || MYSQLUSER || '';
+const resolvedDbPassword = Object.prototype.hasOwnProperty.call(process.env, 'DB_PASSWORD')
+  ? DB_PASSWORD
+  : MYSQLPASSWORD;
+const resolvedDbName = DB_NAME || MYSQLDATABASE || process.env.MYSQLDB || '';
+
+const DB_PASSWORD_SET = Object.prototype.hasOwnProperty.call(process.env, 'DB_PASSWORD')
+  || Object.prototype.hasOwnProperty.call(process.env, 'MYSQLPASSWORD');
 const mysqlMode = String(USE_MYSQL || '').trim().toLowerCase();
 const mysqlDisabled = mysqlMode === 'false';
 const mysqlEnabled = mysqlMode === 'true';
 const requireMysql = String(REQUIRE_MYSQL || '').trim().toLowerCase() === 'true' || mysqlEnabled;
-const missingMysqlConfig = !DB_USER || !DB_NAME || !DB_PASSWORD_SET || DB_USER === 'your_mysql_user' || DB_PASSWORD === 'your_mysql_password';
+const missingMysqlConfig = !resolvedDbUser || !resolvedDbName || !DB_PASSWORD_SET || resolvedDbUser === 'your_mysql_user' || resolvedDbPassword === 'your_mysql_password';
 let useFileFallback = mysqlDisabled || !mysqlEnabled || missingMysqlConfig;
 
 let pool = null;
 if (useFileFallback && requireMysql) {
-  throw new Error('MySQL is enabled but database settings are incomplete. Set DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_NAME, or set USE_MYSQL=false to use the local JSON store.');
+  throw new Error('MySQL is enabled but database settings are incomplete. Set DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME or Railway MYSQLHOST/MYSQLPORT/MYSQLUSER/MYSQLPASSWORD/MYSQLDATABASE, or set USE_MYSQL=false to use the local JSON store.');
 }
 
 if (!useFileFallback) {
   pool = mysql.createPool({
-    host: DB_HOST,
-    port: Number(DB_PORT),
-    user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_NAME,
+    host: resolvedDbHost,
+    port: Number(resolvedDbPort),
+    user: resolvedDbUser,
+    password: resolvedDbPassword,
+    database: resolvedDbName,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
