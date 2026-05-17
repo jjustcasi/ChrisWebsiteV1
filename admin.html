@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Portal | CHRIS Website</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body onload="initializeAdminPortal()">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html">CHRIS Admin</a>
+      <div class="nav-actions">
+        <div class="profile-chip" id="adminProfileChip">
+          <span class="profile-avatar" id="adminProfileAvatar">A</span>
+          <span class="profile-meta">
+            <strong id="adminProfileName">Admin</strong>
+            <small>Administrator</small>
+          </span>
+        </div>
+        <button id="adminLogoutBtn" class="btn btn-danger hidden" onclick="adminLogout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="adminDashboardSection" class="hidden">
+      <!-- Notification Area -->
+      <div id="notificationContainer" style="position: fixed; top: 80px; right: 20px; z-index: 1000; max-width: 400px;"></div>
+
+      <section class="dashboard">
+        <div class="app-shell">
+          <!-- Left Sidebar Navigation -->
+          <aside class="sidebar">
+            <h2>Admin Portal</h2>
+            <button onclick="showAdminPage('overview')" class="menu-btn active" id="overviewBtn">Overview</button>
+            <button onclick="showAdminPage('analytics')" class="menu-btn" id="analyticsBtn">Analytics</button>
+            <button onclick="showAdminPage('announcements')" class="menu-btn" id="announcementsBtn">Announcements</button>
+            <button onclick="showAdminPage('leaves')" class="menu-btn" id="leavesBtn">
+              Leave Monitoring
+              <span id="pendingBadge" style="background: #ff4444; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.8rem; margin-left: 6px; display: none;"></span>
+            </button>
+            <button onclick="showAdminPage('employees')" class="menu-btn" id="employeesBtn">Employee Management</button>
+            <button onclick="showAdminPage('civhr')" class="menu-btn" id="civhrBtn">PDS Records</button>
+            <button onclick="showAdminPage('training')" class="menu-btn" id="trainingBtn">Learning & Development</button>
+          </aside>
+
+          <!-- Main Content Area -->
+          <div class="main">
+            <!-- Overview Page -->
+            <div id="overviewPage">
+              <div class="employee-management-header">
+                <div>
+                  <h2>Welcome, Admin</h2>
+                  <p class="form-note">Review HR activity, audit events, and export the current summary.</p>
+                </div>
+                <div class="employee-header-actions">
+                  <button class="btn btn-outline" type="button" onclick="printHrSummaryReport()">Print / Save PDF</button>
+                  <button class="btn btn-outline" type="button" onclick="downloadHrSummaryCsv()">Export CSV</button>
+                  <button class="btn btn-outline" type="button" onclick="downloadHrSummaryHtml()">Export HTML</button>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3>Overview Snapshot</h3>
+                <p class="form-note">At-a-glance HR totals used by the admin summary.</p>
+                <div class="analytics-kpi-grid">
+                  <div class="metric-card">
+                    <p class="metric-label">Total Employees</p>
+                    <h3 id="totalEmployeesCount">0</h3>
+                    <p class="metric-sub">Active users in the system</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Pending Leaves</p>
+                    <h3 id="pendingLeavesCount">0</h3>
+                    <p class="metric-sub">Awaiting admin action</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Approved Leaves</p>
+                    <h3 id="approvedLeavesCount">0</h3>
+                    <p class="metric-sub">Confirmed leave requests</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Upcoming Trainings</p>
+                    <h3 id="upcomingTrainingsCount">0</h3>
+                    <p class="metric-sub">Scheduled development sessions</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Attendance Trend</p>
+                    <h3 id="attendanceTrendRate">0%</h3>
+                    <p class="metric-sub" id="attendanceTrendMeta">Present 0 | Late 0 | Absent 0</p>
+                  </div>
+                </div>
+              </div>
+
+
+              <div class="card">
+                <h3>Leave Request Status Overview</h3>
+                <p class="form-note">Summary of all leave requests across the organization.</p>
+                <div class="leave-tracker-grid">
+                  <div class="leave-tracker pending">
+                    <p>Pending</p>
+                    <h4 id="statusPendingCount">0</h4>
+                  </div>
+                  <div class="leave-tracker approved">
+                    <p>Approved</p>
+                    <h4 id="statusApprovedCount">0</h4>
+                  </div>
+                  <div class="leave-tracker rejected">
+                    <p>Rejected</p>
+                    <h4 id="statusRejectedCount">0</h4>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recent Leave Requests -->
+              <div class="card">
+                <h3>Recent Leave Requests</h3>
+                <p class="form-note">Latest leave requests from employees.</p>
+                <div class="table-wrap">
+                  <table id="recentLeavesTable">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Type</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Days</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3>Admin Activity Audit Logs</h3>
+                <p class="form-note">Track key admin actions for governance and accountability.</p>
+                <div class="table-wrap">
+                  <table id="adminAuditTable">
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>Admin</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Details</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+            <div id="analyticsPage" class="hidden">
+              <div class="card analytics-dashboard-card">
+                <div class="analytics-dashboard-header">
+                  <div>
+                    <h3>Admin Analytics</h3>
+                    <p class="form-note">Site-wide usage and activity across users, announcements, leave, training, and attendance.</p>
+                  </div>
+                </div>
+                <div class="analytics-kpi-grid">
+                  <div class="metric-card">
+                    <p class="metric-label">Total Accounts</p>
+                    <h3 id="totalAccountsCount">0</h3>
+                    <p class="metric-sub">Registered users</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Admin Accounts</p>
+                    <h3 id="totalAdminAccountsCount">0</h3>
+                    <p class="metric-sub">Site administrators</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Active Employees</p>
+                    <h3 id="activeEmployeesCount">0</h3>
+                    <p class="metric-sub">With recent HR activity</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Announcements Posted</p>
+                    <h3 id="totalAnnouncementsCount">0</h3>
+                    <p class="metric-sub">Published updates</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Total Leaves</p>
+                    <h3 id="totalLeavesCount">0</h3>
+                    <p class="metric-sub">All leave requests</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Total Trainings</p>
+                    <h3 id="totalTrainingsCount">0</h3>
+                    <p class="metric-sub">Records assigned</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Attendance Records</p>
+                    <h3 id="totalAttendanceCount">0</h3>
+                    <p class="metric-sub">Days tracked</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Website Engagement</p>
+                    <h3 id="websiteEngagementRate">0%</h3>
+                    <p class="metric-sub" id="websiteEngagementMeta">Employees using HR tools</p>
+                  </div>
+                </div>
+                <div class="analytics-chart-grid">
+                  <div class="analytics-chart-panel">
+                    <div class="analytics-chart-heading">
+                      <div>
+                        <h4>Feature Activity Mix</h4>
+                        <p class="form-note">Which website modules are generating the most records.</p>
+                      </div>
+                      <strong id="totalWebsiteActivityCount">0</strong>
+                    </div>
+                    <div id="featureActivityChart" class="bar-chart" aria-label="Feature activity chart"></div>
+                  </div>
+                  <div class="analytics-chart-panel">
+                    <div class="analytics-chart-heading">
+                      <div>
+                        <h4>Leave Workflow</h4>
+                        <p class="form-note">Pending work compared with completed decisions.</p>
+                      </div>
+                      <strong id="leaveWorkflowTotal">0</strong>
+                    </div>
+                    <div id="leaveWorkflowChart" class="bar-chart compact" aria-label="Leave workflow chart"></div>
+                  </div>
+                  <div class="analytics-chart-panel">
+                    <div class="analytics-chart-heading">
+                      <div>
+                        <h4>Attendance Reliability</h4>
+                        <p class="form-note">Present, late, and absent records from tracked attendance.</p>
+                      </div>
+                      <strong id="attendanceReliabilityRate">0%</strong>
+                    </div>
+                    <div id="attendanceReliabilityChart" class="bar-chart compact" aria-label="Attendance reliability chart"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="announcementPage" class="hidden">
+              <div class="card">
+                <h3>Announcement Manager</h3>
+                <div class="grid-2">
+                  <input id="adminAnnouncementTitle" placeholder="Title" type="text" style="padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-family: inherit;">
+                  <input id="adminAnnouncementImage" type="file" accept="image/*" style="padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-family: inherit;">
+                </div>
+                <textarea id="adminAnnouncementDescription" placeholder="Description" rows="4" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; font-family:inherit;"></textarea>
+                <button class="btn btn-primary" onclick="addGlobalAnnouncement()">Add Announcement</button>
+                <div id="adminAnnouncementBoard" class="announcement-board"></div>
+              </div>
+            </div>
+
+            <!-- Leave Requests Page -->
+            <div id="leavesPage" class="hidden">
+              <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                  <h3>All Leave Requests</h3>
+                  <div style="display: flex; gap: 10px;">
+                    <select id="filterByStatus" onchange="filterAllLeaves()" style="padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
+                      <option value="">All Statuses</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                    <select id="filterByType" onchange="filterAllLeaves()" style="padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
+                      <option value="">All Types</option>
+                      <option value="Sick">Sick Leave</option>
+                      <option value="Vacation">Vacation</option>
+                      <option value="Maternity">Maternity Leave</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table id="allLeavesTable">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Type</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Days</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Employee Management Page -->
+            <div id="employeesPage" class="hidden">
+              <div class="employee-management-shell">
+                <div class="employee-management-header">
+                  <div>
+                    <h2>Employee Management</h2>
+                    <p class="form-note">Manage employee records, work status, attendance, leave, training, evaluations, promotions, and discipline in one place.</p>
+                  </div>
+                  <div class="employee-header-actions">
+                    <button class="btn btn-outline" type="button" onclick="printEmployeeReport()">Print / Save PDF</button>
+                    <button class="btn btn-outline" type="button" onclick="downloadEmployeeReportCsv()">Export CSV</button>
+                    <button class="btn btn-outline" type="button" onclick="downloadEmployeeReportHtml()">Export HTML</button>
+                  </div>
+                </div>
+
+                <div class="employee-kpi-grid" id="employeeManagementKpis"></div>
+
+                <div class="employee-tabs" role="tablist" aria-label="Employee management sections">
+                  <button class="employee-tab active" id="employeeTabOverview" type="button" onclick="showEmployeeManagementTab('overview')">Overview</button>
+                  <button class="employee-tab" id="employeeTabProfile" type="button" onclick="showEmployeeManagementTab('profile')">Profile</button>
+                  <button class="employee-tab" id="employeeTabActivity" type="button" onclick="showEmployeeManagementTab('activity')">Activity</button>
+                  <button class="employee-tab" id="employeeTabRecords" type="button" onclick="showEmployeeManagementTab('records')">Records</button>
+                </div>
+
+                <div class="employee-management-layout" id="employeeDirectoryProfileLayout">
+                  <section class="card employee-directory-card" id="employeeDirectoryPanel">
+                    <div class="employee-section-heading">
+                      <div>
+                        <h3>Employee Directory</h3>
+                        <p class="form-note">Find an employee, review their status, then open their profile.</p>
+                      </div>
+                    </div>
+                    <div class="employee-directory-toolbar">
+                      <div class="employee-filter-grid">
+                        <input id="employeeDirectorySearch" type="text" placeholder="Search name, email, ID, position..." oninput="renderEmployeeDirectory()">
+                        <select id="employeeDirectoryStatusFilter" onchange="renderEmployeeDirectory()">
+                          <option value="">All statuses</option>
+                          <option>Active</option>
+                          <option>Probationary</option>
+                          <option>On Leave</option>
+                          <option>Contractual</option>
+                          <option>Resigned</option>
+                          <option>Terminated</option>
+                        </select>
+                      </div>
+                      <div class="employee-directory-count" id="employeeDirectoryCount">0 employees</div>
+                    </div>
+                    <div class="employee-list" id="employeeDirectoryList"></div>
+                    <div class="table-wrap employee-directory-table-wrap">
+                      <table id="employeeDirectoryTable">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Department</th>
+                            <th>Position</th>
+                            <th>Badges</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody></tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section class="card employee-profile-panel hidden" id="employeeProfileManager">
+                    <div class="employee-section-heading">
+                      <div>
+                        <h3>Employee Profile</h3>
+                        <p class="form-note" id="employeeProfileModeHint">Edit profile details for the selected CHR employee.</p>
+                      </div>
+                      <div class="employee-header-actions">
+                        <button class="btn btn-primary" type="button" onclick="saveEmployeeProfile()">Save Changes</button>
+                        <button class="btn btn-danger" type="button" onclick="deleteEmployeeById((getUsers().find(user => user.email === selectedEmployeeEmail) || {}).id || 0)">Mark Terminated</button>
+                      </div>
+                    </div>
+
+                    <div class="employee-profile-grid">
+                      <div class="employee-form-fields">
+                        <div class="grid-2">
+                          <div>
+                            <label for="employeeProfileFullName">Full Name</label>
+                            <input id="employeeProfileFullName" type="text">
+                          </div>
+                          <div>
+                            <label for="employeeProfileEmail">Email</label>
+                            <input id="employeeProfileEmail" type="email">
+                          </div>
+                        </div>
+                        <div class="grid-2">
+                          <div>
+                            <label for="employeeProfileUsername">Username</label>
+                            <input id="employeeProfileUsername" type="text" placeholder="signup username">
+                          </div>
+                          <div>
+                            <label for="employeeProfileEmployeeId">Employee ID</label>
+                            <input id="employeeProfileEmployeeId" type="text">
+                          </div>
+                        </div>
+                        <div class="grid-2">
+                          <div>
+                            <label for="employeeProfileEmploymentStatus">Employment Status</label>
+                            <select id="employeeProfileEmploymentStatus">
+                              <option>Active</option>
+                              <option>Probationary</option>
+                              <option>On Leave</option>
+                              <option>Contractual</option>
+                              <option>Resigned</option>
+                              <option>Terminated</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label for="employeeProfileGender">Gender</label>
+                            <input id="employeeProfileGender" type="text" placeholder="Male or Female">
+                          </div>
+                        </div>
+                        <div class="grid-2">
+                          <div>
+                            <label for="employeeProfileDepartment">Department</label>
+                            <input id="employeeProfileDepartment" type="text" readonly>
+                          </div>
+                          <div>
+                            <label for="employeeProfilePosition">Position</label>
+                            <input id="employeeProfilePosition" type="text">
+                          </div>
+                        </div>
+                        <div class="grid-2">
+                          <div>
+                            <label for="employeeProfileDateHired">Date Hired</label>
+                            <input id="employeeProfileDateHired" type="date">
+                          </div>
+                          <div>
+                            <label for="employeeProfileContactInfo">Contact Information</label>
+                            <input id="employeeProfileContactInfo" type="text">
+                          </div>
+                        </div>
+                        <div>
+                          <label for="employeeProfileAddress">Address</label>
+                          <textarea id="employeeProfileAddress" rows="3"></textarea>
+                        </div>
+                        <div>
+                          <label for="employeeProfileEmergencyContact">Emergency Contact</label>
+                          <input id="employeeProfileEmergencyContact" type="text">
+                        </div>
+                        <div class="grid-2">
+                          <div>
+                            <label for="employeeProfileRole">System Role</label>
+                            <select id="employeeProfileRole">
+                              <option value="employee">Employee</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </div>
+                          <div></div>
+                        </div>
+                      </div>
+
+                      <aside class="employee-photo-panel">
+                        <label for="employeeProfilePhotoInput">Profile Photo</label>
+                        <img id="employeeProfilePhotoPreview" alt="Employee profile preview">
+                        <input id="employeeProfilePhotoInput" type="file" accept="image/*" onchange="handleEmployeeProfilePhotoUpload(event)">
+                        <input id="employeeProfilePhotoData" type="hidden">
+                        <button class="btn btn-outline" type="button" onclick="clearEmployeeProfilePhoto()">Remove Photo</button>
+                      </aside>
+                    </div>
+                  </section>
+                </div>
+              </div>
+
+              <div class="card" id="employeeManagementSummary">
+                <h3>Employee Overview</h3>
+                <p class="form-note">Quick overview of the selected employee's profile, PDS status, training, attendance, and leave records.</p>
+                <div id="employeeManagementSummaryContent" style="display:grid; gap:12px;"></div>
+              </div>
+
+              <!-- Leave Requests Section -->
+              <div class="card hidden" id="employeeLeavePanel">
+                <div id="employeeActivityContext" class="employee-context-strip"></div>
+                <h3>Leave Requests</h3>
+                <p class="form-note">Leave requests from the selected employee.</p>
+                <div class="table-wrap">
+                  <table id="adminLeaveTable">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Days</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Attendance Section -->
+              <div class="card hidden" id="employeeAttendancePanel">
+                <h3>Attendance</h3>
+                <div class="grid-2">
+                  <input id="adminAttendanceDate" type="date">
+                  <input id="adminAttendanceTimeIn" type="time" value="08:00">
+                  <input id="adminAttendanceTimeOut" type="time" value="17:00">
+                  <div class="attendance-admin-picker">
+                    <label><input type="radio" name="adminAttendanceStatus" value="Present" checked> Present</label>
+                    <label><input type="radio" name="adminAttendanceStatus" value="Late"> Late</label>
+                    <label><input type="radio" name="adminAttendanceStatus" value="Absent"> Absent</label>
+                  </div>
+                </div>
+                <button class="btn btn-primary" onclick="addEmployeeAttendance()">Add Attendance</button>
+                <div class="table-wrap" style="margin-top: 15px;">
+                  <table id="adminAttendanceTable">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Time In</th>
+                        <th>Time Out</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Evaluation Section -->
+              <div class="card hidden" id="employeeEvaluationPanel">
+                <h3>Employee Evaluation</h3>
+                <div>
+                  <label for="adminEvaluationStatus">Employee Rating</label>
+                  <select id="adminEvaluationStatus">
+                    <option>Outstanding</option>
+                    <option>Very Satisfactory</option>
+                    <option>Satisfactory</option>
+                    <option>Unsatisfactory</option>
+                    <option>Poor</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary" onclick="saveEmployeeEvaluation()">Save Rating</button>
+                <p class="evaluation-save-text" id="evaluationSaveStatus" aria-live="polite"></p>
+              </div>
+
+              <div class="card hidden" id="employeePromotionPanel">
+                <div id="employeeRecordsContext" class="employee-context-strip"></div>
+                <h3>Promotion History</h3>
+                <p class="form-note">Track job changes and promotions for the selected employee.</p>
+                <div class="employee-record-form">
+                  <input id="promotionDate" type="date">
+                  <input id="promotionFrom" type="text" placeholder="From position">
+                  <input id="promotionTo" type="text" placeholder="To position">
+                  <input id="promotionNotes" type="text" placeholder="Notes">
+                  <button class="btn btn-primary" type="button" onclick="addPromotionRecord()">Add Promotion</button>
+                </div>
+                <div class="table-wrap">
+                  <table id="promotionHistoryTable">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Notes</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card hidden" id="employeeDisciplinaryPanel">
+                <h3>Disciplinary Records</h3>
+                <p class="form-note">Track formal disciplinary notes for the selected employee.</p>
+                <div class="employee-record-form">
+                  <input id="disciplinaryDate" type="date">
+                  <input id="disciplinaryType" type="text" placeholder="Type">
+                  <input id="disciplinaryDetails" type="text" placeholder="Details">
+                  <select id="disciplinaryStatus">
+                    <option>Open</option>
+                    <option>Under Review</option>
+                    <option>Resolved</option>
+                  </select>
+                  <button class="btn btn-primary" type="button" onclick="addDisciplinaryRecord()">Add Record</button>
+                </div>
+                <div class="table-wrap">
+                  <table id="disciplinaryRecordsTable">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Details</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- CivHR Personal Data Sheet Page -->
+            <div id="civhrPage" class="hidden">
+              <div class="card">
+                <h3>Select Employee</h3>
+                <p class="form-note">Choose an employee to view personal data.</p>
+                <select id="civhrEmployeeSelect" onchange="selectEmployeeFrom('civhrEmployeeSelect')" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%; max-width: 400px; font-family: inherit;"></select>
+              </div>
+
+              <div class="card">
+                <h3>Personal Data Sheet</h3>
+                <div id="personalDataSheet">
+                  <p class="form-note">Select an employee to view personal data.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Schooling/Training Page -->
+            <div id="trainingPage" class="hidden">
+              <div class="card">
+                <h3>Select Employee</h3>
+                <p class="form-note">Choose an employee to view training history.</p>
+                <select id="trainingEmployeeSelect" onchange="selectEmployeeFrom('trainingEmployeeSelect')" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%; max-width: 400px; font-family: inherit;"></select>
+              </div>
+
+              <div class="module-tabs" role="tablist" aria-label="Training management tabs">
+                <button class="module-tab active" id="adminLndAssignTrainingTab" type="button" onclick="showAdminLndTab('assign')" role="tab" aria-controls="adminLndAssignTrainingPanel" aria-selected="true">Assign Training</button>
+                <button class="module-tab" id="adminLndTrainingRecordsTab" type="button" onclick="showAdminLndTab('records')" role="tab" aria-controls="adminLndTrainingRecordsPanel" aria-selected="false">Employee Records</button>
+              </div>
+
+              <div id="adminLndAssignTrainingPanel" class="lnd-tab-panel" role="tabpanel" aria-labelledby="adminLndAssignTrainingTab">
+              <div class="card">
+                <h3>Assign Training</h3>
+                <p class="form-note">Assign training to the selected employee.</p>
+                <div class="grid-2" style="margin-bottom: 10px;">
+                  <input id="adminTrainingTitle" placeholder="Training title" type="text">
+                  <input id="adminTrainingSponsor" placeholder="Sponsor" type="text">
+                </div>
+                <div class="grid-2" style="margin-bottom: 10px;">
+                  <input id="adminTrainingStart" type="date">
+                  <input id="adminTrainingEnd" type="date">
+                </div>
+                <div class="grid-2" style="margin-bottom: 14px;">
+                  <input id="adminTrainingHours" type="number" min="0" placeholder="Hours">
+                  <select id="adminTrainingType">
+                    <option>Basic course</option>
+                    <option>Basic supervisory</option>
+                    <option>Advance supervisory</option>
+                  </select>
+                </div>
+                <div class="assign-training-actions">
+                  <label class="assign-all-toggle" for="adminTrainingAssignAll">
+                    <input id="adminTrainingAssignAll" type="checkbox">
+                    <span>Assign to all employees</span>
+                  </label>
+                  <button class="btn btn-primary" type="button" onclick="assignTrainingToEmployee()">Assign Training</button>
+                </div>
+              </div>
+              </div>
+
+              <div id="adminLndTrainingRecordsPanel" class="lnd-tab-panel hidden" role="tabpanel" aria-labelledby="adminLndTrainingRecordsTab">
+              <div class="card">
+                <h3>Employee Training Records</h3>
+                <p class="form-note">View assigned and employee-submitted training records, including uploaded certificates.</p>
+                <div id="adminTrainingPointsSummary" class="overview-grid" style="margin-bottom:14px;"></div>
+                <div class="table-wrap">
+                  <table id="adminTrainingTable">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Period</th>
+                        <th>Hours</th>
+                        <th>Type</th>
+                        <th>Sponsor</th>
+                        <th>Certificate</th>
+                        <th>Points</th>
+                        <th>Status</th>
+                        <th>Source</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- Leave Details Modal -->
+    <div id="leaveDetailsModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; overflow-y: auto;">
+      <div style="background: white; margin: 40px auto; padding: 30px; border-radius: 12px; max-width: 600px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3>Leave Request Details</h3>
+          <button onclick="closeLeaveModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+        </div>
+        
+        <div id="leaveModalContent"></div>
+        
+        <div style="margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px;">
+          <h4>Comments & Notes</h4>
+          <div id="commentsList" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px; background: #f9f9f9; padding: 12px; border-radius: 8px; min-height: 80px;"></div>
+          
+          <textarea id="commentInput" placeholder="Add a comment or note..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; min-height: 80px; margin-bottom: 10px;"></textarea>
+          <button class="btn btn-primary" onclick="addCommentToLeave()">Add Comment</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+<script src="auth.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

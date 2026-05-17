@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+
+node_modules/
+
+*.log
+*.err.log
+server-*.log
+server-*.err.log
+
+data/local-db.json
+data/users.json
+localStorage.json
+
+.DS_Store
+Thumbs.db

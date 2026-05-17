@@ -1,0 +1,19 @@
+{
+  "name": "chris-website-backend",
+  "version": "1.0.0",
+  "description": "Simple Node.js backend for CHRIS Website Google authentication and future database integration.",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.1.4",
+    "express": "^4.18.4",
+    "google-auth-library": "^8.9.0",
+    "mysql2": "^3.4.2",
+    "nodemailer": "^8.0.7",
+    "pdfkit": "^0.13.0",
+    "qrcode": "^1.5.4"
+  }
+}

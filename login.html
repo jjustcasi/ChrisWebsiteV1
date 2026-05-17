@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login | CHRIS Website</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body onload="ensureLoggedOut()">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html">CHRIS Website</a>
+    </div>
+  </header>
+
+  <main class="page-wrap auth-layout">
+    <section class="auth-card">
+      <h2>Welcome Back</h2>
+      <p>Login to access your leave and training dashboard.</p>
+      <form class="form" onsubmit="event.preventDefault(); login();">
+        <div>
+          <label for="loginUsername">Username</label>
+          <input id="loginUsername" type="text" autocomplete="username" placeholder="" required>
+        </div>
+        <div>
+          <label for="loginPassword">Password</label>
+          <div class="password-input-wrap">
+            <input id="loginPassword" type="password" required>
+            <button id="toggleLoginPassword" class="password-eye-toggle" type="button" aria-label="Show password" title="Show password">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 5C6.5 5 2.15 8.25 1 12c1.15 3.75 5.5 7 11 7s9.85-3.25 11-7c-1.15-3.75-5.5-7-11-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label for="loginMfaMethod">Multi-factor authentication</label>
+          <select id="loginMfaMethod" required>
+            <option value="authenticator">Authenticator app</option>
+            <option value="email">Email code</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" type="submit">Login</button>
+      </form>
+      <div class="google-login-divider"><span>or</span></div>
+      <div id="googleSignInButton"></div>
+      <div id="authMessage" class="message"></div>
+      <section id="mfaChallengeSection" class="mfa-panel hidden" aria-live="polite">
+        <h3 id="mfaChallengeTitle">Authenticator verification</h3>
+        <p id="mfaRecipient" class="mfa-recipient hidden"></p>
+        <div id="mfaSetupInstructions" class="mfa-setup hidden">
+          <p>Scan this QR code with Google Authenticator to verify your identity or set up a new authenticator. You can scan this code every time you need to re-verify your account.</p>
+          <div class="mfa-qr-box">
+            <img id="mfaSetupQr" alt="Authenticator setup QR code">
+          </div>
+          <details class="mfa-manual-setup">
+            <summary>Use setup key</summary>
+            <p>Account: <span id="mfaSetupAccount"></span></p>
+            <p>Issuer: <span id="mfaSetupIssuer"></span></p>
+            <div class="mfa-secret-box">
+              <span id="mfaSetupSecret"></span>
+            </div>
+          </details>
+        </div>
+        <form class="form" onsubmit="event.preventDefault(); verifyMfaCode();">
+          <div>
+            <label for="mfaCode">6-digit code</label>
+            <input id="mfaCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+          </div>
+          <button class="btn btn-primary" type="submit">Verify code</button>
+        </form>
+      </section>
+      <div class="auth-switch-link">
+        <span>Need an account?</span>
+        <a href="signup.html">Sign Up</a>
+      </div>
+    </section>
+  </main>
+
+<script src="auth.js"></script>
+<script src="config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  function initializeGoogleSignIn() {
+    const enabled = initializeGoogleAuthButton('googleSignInButton');
+    const divider = document.querySelector('.google-login-divider');
+    if (!enabled) {
+      if (divider) divider.classList.add('hidden');
+      return;
+    }
+
+    if (window.google) google.accounts.id.prompt();
+  }
+
+  window.addEventListener('DOMContentLoaded', initializeGoogleSignIn);
+</script>
+</body>
+</html>

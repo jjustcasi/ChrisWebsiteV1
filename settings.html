@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile Settings | CHRIS </title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body onload="initializeSettings()">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="dashboard.html">CHRIS  Portal</a>
+      <div class="nav-actions">
+        <a class="btn btn-outline" href="dashboard.html">Back to Dashboard</a>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="settings-wrap">
+    <section class="auth-card">
+      <h2>Profile Settings</h2>
+      <p>Update your CHR employee profile details.</p>
+
+      <form class="form" onsubmit="event.preventDefault(); saveSettings();">
+        <div>
+          <label for="profileImage">Profile Picture</label>
+          <div id="profileImagePreview" style="margin: 8px 0 10px; width: 56px; height: 56px; display: grid; place-items: center;"></div>
+          <input id="profileImage" type="file" accept="image/*">
+        </div>
+
+        <div class="settings-grid">
+          <div>
+            <label for="fullName">Full Name</label>
+            <input id="fullName" type="text" required>
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input id="email" type="email" readonly>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <div>
+            <label for="department">Department</label>
+            <input id="department" type="text" value="CHR" readonly>
+          </div>
+          <div>
+            <label for="position">Position</label>
+            <input id="position" type="text" placeholder="CHR Employee">
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <div>
+            <label for="employeeId">Employee ID</label>
+            <input id="employeeId" type="text" placeholder="Employee number" readonly>
+          </div>
+          <div>
+            <label for="gender">Gender</label>
+            <input id="gender" type="text" readonly>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <div>
+            <label for="dateHired">Date Hired</label>
+            <input id="dateHired" type="date" readonly>
+          </div>
+          <div>
+            <label for="phone">Phone Number</label>
+            <input id="phone" type="tel" placeholder="0912 345 6789">
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <div>
+            <label for="address">Address</label>
+            <input id="address" type="text" placeholder="Home address">
+          </div>
+          <div>
+            <label for="emergencyContact">Emergency Contact</label>
+            <input id="emergencyContact" type="text" placeholder="Name and phone number">
+          </div>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Save Changes</button>
+      </form>
+
+      <div id="settingsMessage" class="message"></div>
+    </section>
+  </main>
+
+<script src="settings.js"></script>
+</body>
+</html>

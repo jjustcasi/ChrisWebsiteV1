@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Up | CHRIS </title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body onload="ensureLoggedOut()">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html">CHRIS Website</a>
+    </div>
+  </header>
+
+  <main class="page-wrap auth-layout">
+    <section class="auth-card">
+      <h2>Create Account</h2>
+      <p>Set up your account to start using CHRIS HRIS tools.</p>
+      <form class="form" onsubmit="event.preventDefault(); signup();">
+        <div class="grid-2">
+          <div>
+            <label for="signupSurname">Surname</label>
+            <input id="signupSurname" type="text" required>
+          </div>
+          <div>
+            <label for="signupFirstName">First Name</label>
+            <input id="signupFirstName" type="text" required>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="signupMiddleName">Middle Name <span class="optional-label">Optional</span></label>
+            <input id="signupMiddleName" type="text">
+          </div>
+          <div>
+            <label for="signupSuffix">Extension/Suffix <span class="optional-label">Optional</span></label>
+            <input id="signupSuffix" type="text" placeholder="Jr., Sr., III">
+          </div>
+        </div>
+        <div>
+          <label for="signupUsername">Username</label>
+          <input id="signupUsername" type="text" minlength="3" maxlength="30" pattern="[A-Za-z0-9._-]{3,30}" autocomplete="username" required>
+          <p class="password-policy">Use 3-30 letters, numbers, dots, underscores, or hyphens</p>
+        </div>
+        <div>
+          <label for="signupEmail">Email</label>
+          <input id="signupEmail" type="email" required>
+        </div>
+        <div>
+          <label for="signupBirthday">Birthday</label>
+          <input id="signupBirthday" type="date" required>
+        </div>
+        <div>
+          <label for="signupPassword">Password</label>
+          <div class="password-input-wrap">
+            <input id="signupPassword" name="newPassword" type="password" minlength="12" autocomplete="new-password" required>
+            <button id="toggleSignupPassword" class="password-eye-toggle" type="button" aria-label="Show password" title="Show password">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 5C6.5 5 2.15 8.25 1 12c1.15 3.75 5.5 7 11 7s9.85-3.25 11-7c-1.15-3.75-5.5-7-11-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="password-strength" id="signupPasswordStrength" aria-live="polite">
+            <div class="password-strength-track">
+              <span class="password-strength-fill"></span>
+            </div>
+            <p class="password-strength-label">Password strength: Weak</p>
+          </div>
+          <p class="password-policy">Use at least 12 characters with uppercase, lowercase, number, and symbol</p>
+        </div>
+        <div>
+          <label for="signupConfirmPassword">Confirm Password</label>
+          <div class="password-input-wrap">
+            <input id="signupConfirmPassword" name="confirmNewPassword" type="password" minlength="12" autocomplete="new-password" required>
+            <button id="toggleSignupConfirmPassword" class="password-eye-toggle" type="button" aria-label="Show confirm password" title="Show confirm password">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 5C6.5 5 2.15 8.25 1 12c1.15 3.75 5.5 7 11 7s9.85-3.25 11-7c-1.15-3.75-5.5-7-11-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label for="signupGender">Gender</label>
+          <select id="signupGender" required>
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+        <div>
+          <label for="agreeTerms" class="consent-row">
+            <input type="checkbox" id="agreeTerms" required>
+            <span>By creating an account, I confirm that I have read and agree to the <a href="terms.html">Terms and Conditions</a> and <a href="privacy.html">Privacy Policy</a>, and I consent to the collection and processing of my personal data.</span>
+          </label>
+        </div>
+        <button class="btn btn-primary" type="submit">Sign Up</button>
+      </form>
+      <div class="google-login-divider"><span>or</span></div>
+      <div id="googleSignUpButton"></div>
+      <div id="authMessage" class="message"></div>
+      <div class="auth-switch-link">
+        <span>Already have an account?</span>
+        <a href="login.html">Login</a>
+      </div>
+    </section>
+  </main>
+
+<script src="auth.js"></script>
+<script src="config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  function initializeGoogleSignUp() {
+    const enabled = initializeGoogleAuthButton('googleSignUpButton');
+    const divider = document.querySelector('.google-login-divider');
+    if (!enabled && divider) divider.classList.add('hidden');
+  }
+
+  window.addEventListener('DOMContentLoaded', initializeGoogleSignUp);
+</script>
+</body>
+</html>
