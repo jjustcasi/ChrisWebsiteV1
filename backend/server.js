@@ -99,6 +99,26 @@ app.get('/config.js', (req, res) => {
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@chris.com';
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const EXTRA_ADMIN_EMAIL = process.env.EXTRA_ADMIN_EMAIL || '';
+const EXTRA_ADMIN_PASSWORD = process.env.EXTRA_ADMIN_PASSWORD || '';
+const EXTRA_ADMIN_USERNAME = process.env.EXTRA_ADMIN_USERNAME || '';
+
+function isPlaceholderValue(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return !normalized
+    || normalized.includes('example.com')
+    || normalized.includes('replace-with')
+    || normalized.includes('change-me')
+    || normalized.startsWith('your_')
+    || normalized.startsWith('your-');
+}
+
+function isSmtpConfigured() {
+  return !isPlaceholderValue(SMTP_HOST)
+    && !isPlaceholderValue(SMTP_FROM)
+    && !isPlaceholderValue(SMTP_USER)
+    && !isPlaceholderValue(SMTP_PASS);
+}
 
 function validateDeploymentConfig() {
   if (!IS_PRODUCTION_DEPLOY) return;
@@ -106,42 +126,72 @@ function validateDeploymentConfig() {
   const missing = [];
   if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === 'admin123') missing.push('ADMIN_PASSWORD');
   if (!process.env.SESSION_SECRET && !process.env.MFA_CHALLENGE_SECRET) missing.push('SESSION_SECRET or MFA_CHALLENGE_SECRET');
+  if ((EXTRA_ADMIN_EMAIL && !EXTRA_ADMIN_PASSWORD) || (!EXTRA_ADMIN_EMAIL && EXTRA_ADMIN_PASSWORD)) {
+    missing.push('both EXTRA_ADMIN_EMAIL and EXTRA_ADMIN_PASSWORD');
+  }
 
   if (missing.length) {
     throw new Error(`Missing production environment variable(s): ${missing.join(', ')}`);
   }
 }
 
-async function ensureDefaultAdminAccount() {
-  const existingAdmin = await getUserByEmail(DEFAULT_ADMIN_EMAIL);
+async function ensureAdminAccount({ email, password, username = '', name = 'Admin User', isDefault = false }) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedUsername = String(username || normalizedEmail.split('@')[0] || 'admin').trim().toLowerCase();
+  if (!normalizedEmail || !password) return;
+
+  const existingAdmin = await getUserByEmail(normalizedEmail);
   if (existingAdmin) {
-    if (!existingAdmin.username) {
-      await updateUserUsername(existingAdmin.id, 'admin');
-      console.log(`Updated existing admin ${DEFAULT_ADMIN_EMAIL} with username: admin.`);
+    const usernameOwner = validateUsername(normalizedUsername) ? await getUserByUsername(normalizedUsername) : null;
+    if (!existingAdmin.username && validateUsername(normalizedUsername) && (!usernameOwner || usernameOwner.id === existingAdmin.id)) {
+      await updateUserUsername(existingAdmin.id, normalizedUsername);
+      console.log(`Updated existing admin ${normalizedEmail} with username: ${normalizedUsername}.`);
     }
     if (existingAdmin.role !== 'admin') {
       await updateUserRole(existingAdmin.id, 'admin');
-      console.log(`Updated existing user ${DEFAULT_ADMIN_EMAIL} to admin role.`);
+      console.log(`Updated existing user ${normalizedEmail} to admin role.`);
     }
     return;
   }
 
-  const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
+  const finalUsername = validateUsername(normalizedUsername)
+    && !(await getUserByUsername(normalizedUsername))
+    ? normalizedUsername
+    : await generateAvailableUsername(normalizedEmail, 'admin');
+
   await createUser({
-    name: 'Admin User',
-    username: 'admin',
+    name,
+    username: finalUsername,
     surname: 'Admin',
     firstName: 'Admin',
     middleName: '',
     suffix: '',
-    email: DEFAULT_ADMIN_EMAIL,
+    email: normalizedEmail,
     birthday: '2000-01-01',
-    password: hashedPassword,
+    password: bcrypt.hashSync(password, 10),
     gender: 'Other',
     role: 'admin',
     google: false,
   });
-  console.log(`Created default admin account: ${DEFAULT_ADMIN_EMAIL}`);
+  console.log(`Created ${isDefault ? 'default' : 'extra'} admin account: ${normalizedEmail}`);
+}
+
+async function ensureAdminAccounts() {
+  await ensureAdminAccount({
+    email: DEFAULT_ADMIN_EMAIL,
+    password: DEFAULT_ADMIN_PASSWORD,
+    username: 'admin',
+    isDefault: true,
+  });
+
+  if (EXTRA_ADMIN_EMAIL || EXTRA_ADMIN_PASSWORD) {
+    await ensureAdminAccount({
+      email: EXTRA_ADMIN_EMAIL,
+      password: EXTRA_ADMIN_PASSWORD,
+      username: EXTRA_ADMIN_USERNAME,
+      name: 'Recovery Admin',
+    });
+  }
 }
 
 function validateEmail(email) {
@@ -1057,7 +1107,7 @@ app.use((err, req, res, next) => {
 async function startServer() {
   validateDeploymentConfig();
   await initializeDatabase();
-  await ensureDefaultAdminAccount();
+  await ensureAdminAccounts();
 
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`CHRIS Website backend started on port ${PORT}`);
@@ -1068,6 +1118,10 @@ async function startServer() {
 
     if (isUsingFileFallback()) {
       console.warn('Using local JSON fallback store. Set USE_MYSQL=true with valid DB settings to use MySQL in production.');
+    }
+
+    if (!isSmtpConfigured()) {
+      console.warn('Email MFA SMTP is not fully configured. Set real SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM values before using email codes.');
     }
   });
 
@@ -1238,13 +1292,13 @@ async function sendMfaCode(user, method, code) {
     throw new Error('Unsupported MFA method.');
   }
 
-  if (!SMTP_HOST || !SMTP_FROM) {
+  if (!isSmtpConfigured()) {
     if (EMAIL_MFA_DEV_MODE || process.env.NODE_ENV !== 'production') {
       console.warn(`[MFA] Email SMTP is not configured. Development code for ${user.email}: ${code}`);
       return `Email MFA is in development mode. Use the code printed in the server console for ${user.email}.`;
     }
 
-    throw new Error('Email MFA is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM in .env.');
+    throw new Error('Email MFA is not configured. Set real SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM values. For SendGrid, use SMTP_USER=apikey, SMTP_PASS=<SendGrid API key>, and a verified sender in SMTP_FROM.');
   }
 
   const transport = nodemailer.createTransport({
@@ -1254,12 +1308,22 @@ async function sendMfaCode(user, method, code) {
     auth: SMTP_USER || SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
   });
 
-  await transport.sendMail({
-    from: SMTP_FROM,
-    to: user.email,
-    subject: `${MFA_ISSUER} verification code`,
-    text: `Your ${MFA_ISSUER} verification code is ${code}. It expires in 5 minutes.`,
-  });
+  try {
+    await transport.sendMail({
+      from: SMTP_FROM,
+      to: user.email,
+      subject: `${MFA_ISSUER} verification code`,
+      text: `Your ${MFA_ISSUER} verification code is ${code}. It expires in 5 minutes.`,
+    });
+  } catch (error) {
+    console.error('Failed to send email MFA code:', {
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode,
+    });
+    throw new Error('Email MFA could not send. Check SMTP credentials, sender verification, and Railway SMTP variables.');
+  }
 
   return `A verification code was sent to ${user.email}.`;
 }

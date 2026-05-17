@@ -27,17 +27,20 @@ DB_PASSWORD=your_mysql_password
 DB_NAME=chris_website
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=replace-with-a-strong-admin-password
+EXTRA_ADMIN_EMAIL=
+EXTRA_ADMIN_USERNAME=
+EXTRA_ADMIN_PASSWORD=
 SESSION_SECRET=replace-with-a-long-random-secret
 MFA_CHALLENGE_SECRET=replace-with-a-long-random-secret
 MFA_ISSUER=CHRIS
 ENABLE_GOOGLE_AUTH=false
 GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
-SMTP_HOST=smtp.example.com
+SMTP_HOST=smtp.sendgrid.net
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=your_smtp_user
-SMTP_PASS=your_smtp_password
-SMTP_FROM="CHRIS <no-reply@example.com>"
+SMTP_USER=apikey
+SMTP_PASS=your_sendgrid_api_key
+SMTP_FROM="CHRIS <verified-sender@example.com>"
 EMAIL_MFA_DEV_MODE=false
 ```
 
@@ -77,12 +80,12 @@ If you enable Google login, add your Railway public URL to the Google OAuth Auth
    $env:DB_USER = 'your_mysql_user'
    $env:DB_PASSWORD = 'your_mysql_password'
    $env:DB_NAME = 'chris_website'
-   $env:SMTP_HOST = 'smtp.example.com'
+   $env:SMTP_HOST = 'smtp.sendgrid.net'
    $env:SMTP_PORT = '587'
    $env:SMTP_SECURE = 'false'
-   $env:SMTP_USER = 'your_smtp_user'
-   $env:SMTP_PASS = 'your_smtp_password'
-   $env:SMTP_FROM = 'CHRIS <no-reply@example.com>'
+   $env:SMTP_USER = 'apikey'
+   $env:SMTP_PASS = 'your_sendgrid_api_key'
+   $env:SMTP_FROM = 'CHRIS <verified-sender@example.com>'
    $env:EMAIL_MFA_DEV_MODE = 'true'
    ```
 
@@ -135,21 +138,34 @@ The login page includes a Google account option. It appears when `GOOGLE_CLIENT_
 
 The backend verifies Google ID tokens at `/api/auth/google`. New Google users are created automatically, then they complete the same MFA setup/verification flow before entering the dashboard.
 
+## Admin account recovery
+
+The backend creates the `ADMIN_EMAIL` account on startup if it does not exist. If you already have an admin account but do not know its password, set these additional Railway variables and redeploy:
+
+```text
+EXTRA_ADMIN_EMAIL=your-new-admin@example.com
+EXTRA_ADMIN_USERNAME=recoveryadmin
+EXTRA_ADMIN_PASSWORD=Use-A-Strong-Password-Here1!
+```
+
+On startup, the app creates that account as an admin. If an account with that email already exists, it is promoted to admin.
+
 ## Email MFA setup
 
 The login page lets users choose an authenticator app or email code for MFA. Email codes require SMTP settings in `.env`:
 
 ```text
-SMTP_HOST=smtp.example.com
+SMTP_HOST=smtp.sendgrid.net
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=your_smtp_user
-SMTP_PASS=your_smtp_password
-SMTP_FROM="CHRIS <no-reply@example.com>"
-EMAIL_MFA_DEV_MODE=true
+SMTP_USER=apikey
+SMTP_PASS=your_sendgrid_api_key
+SMTP_FROM="CHRIS <verified-sender@example.com>"
+EMAIL_MFA_DEV_MODE=false
 ```
 
 Use `SMTP_SECURE=true` for SMTPS ports such as `465`; use `false` for STARTTLS ports such as `587`.
+For SendGrid, `SMTP_USER` must literally be `apikey`, `SMTP_PASS` must be your SendGrid API key, and `SMTP_FROM` must use a verified sender identity in SendGrid.
 When SMTP is not configured and `EMAIL_MFA_DEV_MODE=true`, the MFA code is printed in the server console for local testing.
 
 ## Current database integration

@@ -67,6 +67,14 @@ ADMIN_EMAIL=your-admin@example.com
 ADMIN_PASSWORD=<strong-password-min-12-chars>
 ```
 
+If you do not know the existing admin password, add a recovery admin and redeploy:
+
+```
+EXTRA_ADMIN_EMAIL=your-new-admin@example.com
+EXTRA_ADMIN_USERNAME=recoveryadmin
+EXTRA_ADMIN_PASSWORD=<strong-password-min-12-chars>
+```
+
 ### 2. For Database (MySQL)
 **Option A: Use Railway MySQL Plugin (Recommended)**
 - Add MySQL service in Railway
@@ -90,14 +98,16 @@ ADMIN_PASSWORD=<strong-password-min-12-chars>
 
 ### 4. For Email/MFA (If Enabled)
 ```
-SMTP_HOST=smtp.example.com
+SMTP_HOST=smtp.sendgrid.net
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=your-email@example.com
-SMTP_PASS=your-app-password
-SMTP_FROM=noreply@example.com
+SMTP_USER=apikey
+SMTP_PASS=<sendgrid-api-key>
+SMTP_FROM="CHRIS <verified-sender@example.com>"
 EMAIL_MFA_DEV_MODE=false
 ```
+
+For SendGrid, `SMTP_USER` must literally be `apikey`, `SMTP_PASS` must be a real SendGrid API key, and `SMTP_FROM` must be a verified sender identity.
 
 ---
 
