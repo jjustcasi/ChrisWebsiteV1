@@ -11,7 +11,7 @@ Railway can deploy this project as a Node.js app. The repository includes `railw
 npm start
 ```
 
-Before deploying, add a persistent MySQL database service in Railway or provide external MySQL credentials. Then set these variables in the Railway service:
+For a persistent production deployment, add a MySQL database service in Railway or provide external MySQL credentials. Then set these variables in the Railway service:
 
 ```text
 NODE_ENV=production
@@ -37,6 +37,8 @@ SMTP_PASS=your_smtp_password
 SMTP_FROM="CHRIS <no-reply@example.com>"
 EMAIL_MFA_DEV_MODE=false
 ```
+
+For a quick deployment without MySQL, set `USE_MYSQL=false` and omit `REQUIRE_MYSQL`. The app will start with the local JSON store, but Railway redeploys or container restarts can lose that data, so use MySQL before relying on the site for real records.
 
 Do not set `PORT` on Railway. Railway provides it automatically, and the backend binds to that assigned port.
 

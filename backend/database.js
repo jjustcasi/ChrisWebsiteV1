@@ -14,15 +14,16 @@ const {
 } = process.env;
 
 const DB_PASSWORD_SET = Object.prototype.hasOwnProperty.call(process.env, 'DB_PASSWORD');
-const mysqlDisabled = String(USE_MYSQL || '').toLowerCase() === 'false';
-const requireMysql = String(REQUIRE_MYSQL || '').toLowerCase() === 'true'
-  || String(process.env.NODE_ENV || '').toLowerCase() === 'production'
-  || Boolean(process.env.RAILWAY_ENVIRONMENT);
-let useFileFallback = mysqlDisabled || !DB_USER || !DB_NAME || !DB_PASSWORD_SET || DB_USER === 'your_mysql_user' || DB_PASSWORD === 'your_mysql_password';
+const mysqlMode = String(USE_MYSQL || '').trim().toLowerCase();
+const mysqlDisabled = mysqlMode === 'false';
+const mysqlEnabled = mysqlMode === 'true';
+const requireMysql = String(REQUIRE_MYSQL || '').trim().toLowerCase() === 'true' || mysqlEnabled;
+const missingMysqlConfig = !DB_USER || !DB_NAME || !DB_PASSWORD_SET || DB_USER === 'your_mysql_user' || DB_PASSWORD === 'your_mysql_password';
+let useFileFallback = mysqlDisabled || !mysqlEnabled || missingMysqlConfig;
 
 let pool = null;
 if (useFileFallback && requireMysql) {
-  throw new Error('MySQL is required for this deployment. Set USE_MYSQL=true plus DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_NAME.');
+  throw new Error('MySQL is enabled but database settings are incomplete. Set DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_NAME, or set USE_MYSQL=false to use the local JSON store.');
 }
 
 if (!useFileFallback) {

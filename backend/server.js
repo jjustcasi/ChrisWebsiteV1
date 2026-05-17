@@ -1047,7 +1047,12 @@ app.get('/api/pds/download/:email', async (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, '..')));
-app.use(express.static(__dirname));
+
+// Global error handler for unhandled promise rejections
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ success: false, message: 'Internal server error' });
+});
 
 async function startServer() {
   validateDeploymentConfig();
