@@ -740,11 +740,12 @@ th{font-size:.86rem;text-transform:uppercase;letter-spacing:.02em;color:#475569}
 }
 .analytics-chart-grid{
   display:grid;
-  grid-template-columns:minmax(360px,1.45fr) minmax(240px,1fr) minmax(240px,1fr);
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));
   gap:10px;
   align-items:stretch;
 }
 .analytics-chart-panel{
+  min-width:0;
   border:1px solid #e2e8f0;
   border-radius:8px;
   padding:14px;
@@ -2187,6 +2188,9 @@ th{font-size:.86rem;text-transform:uppercase;letter-spacing:.02em;color:#475569}
   display:grid;
   grid-template-columns:320px 1fr;
   gap:14px;
+}
+.admin-grid > *{
+  min-width:0;
 }
 .admin-sidebar{
   position:sticky;
