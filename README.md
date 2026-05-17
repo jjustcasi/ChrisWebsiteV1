@@ -41,6 +41,7 @@ SMTP_SECURE=false
 SMTP_USER=apikey
 SMTP_PASS=your_sendgrid_api_key
 SMTP_FROM="CHRIS <verified-sender@example.com>"
+SMTP_TIMEOUT_MS=12000
 EMAIL_MFA_DEV_MODE=false
 ```
 
@@ -86,6 +87,7 @@ If you enable Google login, add your Railway public URL to the Google OAuth Auth
    $env:SMTP_USER = 'apikey'
    $env:SMTP_PASS = 'your_sendgrid_api_key'
    $env:SMTP_FROM = 'CHRIS <verified-sender@example.com>'
+   $env:SMTP_TIMEOUT_MS = '12000'
    $env:EMAIL_MFA_DEV_MODE = 'true'
    ```
 
@@ -161,11 +163,13 @@ SMTP_SECURE=false
 SMTP_USER=apikey
 SMTP_PASS=your_sendgrid_api_key
 SMTP_FROM="CHRIS <verified-sender@example.com>"
+SMTP_TIMEOUT_MS=12000
 EMAIL_MFA_DEV_MODE=false
 ```
 
 Use `SMTP_SECURE=true` for SMTPS ports such as `465`; use `false` for STARTTLS ports such as `587`.
 For SendGrid, `SMTP_USER` must literally be `apikey`, `SMTP_PASS` must be your SendGrid API key, and `SMTP_FROM` must use a verified sender identity in SendGrid.
+`SMTP_TIMEOUT_MS` limits how long login waits for SendGrid before showing an error.
 When SMTP is not configured and `EMAIL_MFA_DEV_MODE=true`, the MFA code is printed in the server console for local testing.
 
 ## Current database integration

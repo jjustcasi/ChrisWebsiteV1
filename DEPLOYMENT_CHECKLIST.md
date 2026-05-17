@@ -104,6 +104,7 @@ SMTP_SECURE=false
 SMTP_USER=apikey
 SMTP_PASS=<sendgrid-api-key>
 SMTP_FROM="CHRIS <verified-sender@example.com>"
+SMTP_TIMEOUT_MS=12000
 EMAIL_MFA_DEV_MODE=false
 ```
 

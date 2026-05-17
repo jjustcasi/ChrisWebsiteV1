@@ -78,6 +78,7 @@ const SMTP_SECURE = String(process.env.SMTP_SECURE || '').toLowerCase() === 'tru
 const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || '';
+const SMTP_TIMEOUT_MS = Math.max(parseInt(process.env.SMTP_TIMEOUT_MS, 10) || 12000, 3000);
 const EMAIL_MFA_DEV_MODE = String(process.env.EMAIL_MFA_DEV_MODE || '').toLowerCase() === 'true';
 
 app.get('/backend/:page', (req, res, next) => {
@@ -1287,6 +1288,15 @@ function verifyStoredMfaCode(user, code) {
   return expected.length === given.length && crypto.timingSafeEqual(expected, given);
 }
 
+function withTimeout(promise, timeoutMs, message) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
 async function sendMfaCode(user, method, code) {
   if (method !== 'email') {
     throw new Error('Unsupported MFA method.');
@@ -1305,24 +1315,34 @@ async function sendMfaCode(user, method, code) {
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_SECURE,
+    connectionTimeout: SMTP_TIMEOUT_MS,
+    greetingTimeout: SMTP_TIMEOUT_MS,
+    socketTimeout: SMTP_TIMEOUT_MS,
     auth: SMTP_USER || SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
   });
 
   try {
-    await transport.sendMail({
-      from: SMTP_FROM,
-      to: user.email,
-      subject: `${MFA_ISSUER} verification code`,
-      text: `Your ${MFA_ISSUER} verification code is ${code}. It expires in 5 minutes.`,
-    });
+    await withTimeout(
+      transport.sendMail({
+        from: SMTP_FROM,
+        to: user.email,
+        subject: `${MFA_ISSUER} verification code`,
+        text: `Your ${MFA_ISSUER} verification code is ${code}. It expires in 5 minutes.`,
+      }),
+      SMTP_TIMEOUT_MS + 1000,
+      'SMTP send timed out.'
+    );
   } catch (error) {
     console.error('Failed to send email MFA code:', {
+      message: error.message,
       code: error.code,
       command: error.command,
       response: error.response,
       responseCode: error.responseCode,
     });
-    throw new Error('Email MFA could not send. Check SMTP credentials, sender verification, and Railway SMTP variables.');
+    throw new Error('Email MFA could not send within the timeout. Check SendGrid API key, sender verification, SMTP_FROM formatting, and Railway variables.');
+  } finally {
+    transport.close();
   }
 
   return `A verification code was sent to ${user.email}.`;
