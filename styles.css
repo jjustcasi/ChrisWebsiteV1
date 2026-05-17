@@ -756,19 +756,27 @@ th{font-size:.86rem;text-transform:uppercase;letter-spacing:.02em;color:#475569}
 .analytics-chart-heading{
   display:flex;
   justify-content:space-between;
+  flex-wrap:wrap;
   gap:12px;
   align-items:flex-start;
   margin-bottom:12px;
+}
+.analytics-chart-heading > div{
+  min-width:0;
+  flex:1 1 160px;
 }
 .analytics-chart-heading h4{
   margin:0 0 4px;
   font-size:1rem;
   color:#0f172a;
+  line-height:1.2;
 }
 .analytics-chart-heading strong{
   font-size:1.7rem;
   color:#0f766e;
   line-height:1;
+  flex:0 0 auto;
+  white-space:nowrap;
 }
 .bar-chart{
   display:flex;
