@@ -72,12 +72,25 @@ const LOGIN_LOCKOUT_THRESHOLD = 3;
 const LOGIN_LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const MFA_METHODS = new Set(['authenticator', 'email']);
-const SMTP_HOST = process.env.SMTP_HOST || '';
+const SENDGRID_MAIL_SEND_URL = 'https://api.sendgrid.com/v3/mail/send';
+
+function normalizeEnvValue(value) {
+  let normalized = String(value || '').trim();
+  normalized = normalized.replace(/\\"/g, '"');
+  if ((normalized.startsWith('"') && normalized.endsWith('"')) || (normalized.startsWith("'") && normalized.endsWith("'"))) {
+    normalized = normalized.slice(1, -1).trim();
+  }
+  if (normalized.startsWith('"') || normalized.startsWith("'")) normalized = normalized.slice(1).trim();
+  if (normalized.endsWith('"') || normalized.endsWith("'")) normalized = normalized.slice(0, -1).trim();
+  return normalized;
+}
+
+const SMTP_HOST = normalizeEnvValue(process.env.SMTP_HOST);
 const SMTP_PORT = parseInt(process.env.SMTP_PORT, 10) || 587;
-const SMTP_SECURE = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true';
-const SMTP_USER = process.env.SMTP_USER || '';
-const SMTP_PASS = process.env.SMTP_PASS || '';
-const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || '';
+const SMTP_SECURE = String(normalizeEnvValue(process.env.SMTP_SECURE)).toLowerCase() === 'true';
+const SMTP_USER = normalizeEnvValue(process.env.SMTP_USER);
+const SMTP_PASS = normalizeEnvValue(process.env.SMTP_PASS);
+const SMTP_FROM = normalizeEnvValue(process.env.SMTP_FROM) || SMTP_USER || '';
 const SMTP_TIMEOUT_MS = Math.max(parseInt(process.env.SMTP_TIMEOUT_MS, 10) || 12000, 3000);
 const EMAIL_MFA_DEV_MODE = String(process.env.EMAIL_MFA_DEV_MODE || '').toLowerCase() === 'true';
 
@@ -1297,6 +1310,69 @@ function withTimeout(promise, timeoutMs, message) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
 }
 
+function isSendGridConfigured() {
+  return SMTP_HOST.toLowerCase() === 'smtp.sendgrid.net'
+    && SMTP_USER.toLowerCase() === 'apikey'
+    && SMTP_PASS.startsWith('SG.')
+    && !isPlaceholderValue(SMTP_FROM);
+}
+
+function parseEmailAddress(value) {
+  const raw = normalizeEnvValue(value);
+  const match = raw.match(/^(.*?)<([^<>@\s]+@[^<>@\s]+\.[^<>@\s]+)>$/);
+  if (match) {
+    return {
+      name: match[1].trim().replace(/^["']|["']$/g, ''),
+      email: match[2].trim(),
+    };
+  }
+
+  return { name: '', email: raw.trim() };
+}
+
+async function sendMfaCodeWithSendGridApi(user, code) {
+  if (typeof fetch !== 'function') {
+    throw new Error('Fetch API is unavailable in this Node.js runtime.');
+  }
+
+  const from = parseEmailAddress(SMTP_FROM);
+  const to = parseEmailAddress(user.email);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SMTP_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(SENDGRID_MAIL_SEND_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${SMTP_PASS}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to.email }] }],
+        from: {
+          email: from.email,
+          ...(from.name ? { name: from.name } : {}),
+        },
+        subject: `${MFA_ISSUER} verification code`,
+        content: [
+          {
+            type: 'text/plain',
+            value: `Your ${MFA_ISSUER} verification code is ${code}. It expires in 5 minutes.`,
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`SendGrid API returned ${response.status}: ${errorText.slice(0, 500)}`);
+    }
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function sendMfaCode(user, method, code) {
   if (method !== 'email') {
     throw new Error('Unsupported MFA method.');
@@ -1309,6 +1385,20 @@ async function sendMfaCode(user, method, code) {
     }
 
     throw new Error('Email MFA is not configured. Set real SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM values. For SendGrid, use SMTP_USER=apikey, SMTP_PASS=<SendGrid API key>, and a verified sender in SMTP_FROM.');
+  }
+
+  if (isSendGridConfigured()) {
+    try {
+      await sendMfaCodeWithSendGridApi(user, code);
+      return `A verification code was sent to ${user.email}.`;
+    } catch (error) {
+      console.error('Failed to send email MFA code with SendGrid API:', {
+        message: error.message,
+        from: parseEmailAddress(SMTP_FROM).email,
+        to: user.email,
+      });
+      throw new Error('Email MFA could not send through SendGrid. Check the API key Mail Send permission and verify SMTP_FROM as a SendGrid sender.');
+    }
   }
 
   const transport = nodemailer.createTransport({

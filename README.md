@@ -169,6 +169,7 @@ EMAIL_MFA_DEV_MODE=false
 
 Use `SMTP_SECURE=true` for SMTPS ports such as `465`; use `false` for STARTTLS ports such as `587`.
 For SendGrid, `SMTP_USER` must literally be `apikey`, `SMTP_PASS` must be your SendGrid API key, and `SMTP_FROM` must use a verified sender identity in SendGrid.
+When SendGrid settings are detected, the backend sends MFA codes through SendGrid's v3 Mail Send API instead of the slower SMTP handshake.
 `SMTP_TIMEOUT_MS` limits how long login waits for SendGrid before showing an error.
 When SMTP is not configured and `EMAIL_MFA_DEV_MODE=true`, the MFA code is printed in the server console for local testing.
 
