@@ -84,7 +84,14 @@ textarea{
   align-items:center;
   justify-content:center;
 }
+.btn:disabled{
+  cursor:not-allowed;
+  opacity:.65;
+  transform:none;
+  filter:none;
+}
 .btn:hover{transform:translateY(-1px)}
+.btn:disabled:hover{transform:none}
 .btn-primary{background:var(--brand);color:#fff}
 .btn-primary:hover{filter:brightness(1.06)}
 .btn-outline{background:#fff;color:var(--brand);border:1px solid #99f6e4}

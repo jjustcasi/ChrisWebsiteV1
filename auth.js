@@ -131,6 +131,7 @@ function setupSignupPasswordStrengthIndicator() {
 
 const SIGNUP_DRAFT_KEY = 'chris_signup_draft';
 let pendingMfaChallenge = null;
+let loginRequestInFlight = false;
 
 function cameFromPolicyPage() {
   const referrer = document.referrer || '';
@@ -315,7 +316,19 @@ function hidePrimaryAuthControls() {
   });
 }
 
+function setLoginLoading(isLoading, method = 'authenticator') {
+  loginRequestInFlight = Boolean(isLoading);
+  const button = document.getElementById('loginSubmitBtn');
+  if (!button) return;
+
+  button.disabled = Boolean(isLoading);
+  button.textContent = isLoading
+    ? (method === 'email' ? 'Sending code...' : 'Checking...')
+    : 'Login';
+}
+
 function showMfaChallenge(data, localUserPayload) {
+  setLoginLoading(false);
   pendingMfaChallenge = {
     token: data.challengeToken,
     localUserPayload: localUserPayload || null
@@ -487,9 +500,23 @@ function signup() {
 }
 
 function login() {
+  if (loginRequestInFlight) return;
+
   const username = document.getElementById('loginUsername').value.trim().toLowerCase();
   const password = document.getElementById('loginPassword').value;
   const mfaMethod = document.getElementById('loginMfaMethod')?.value || 'authenticator';
+
+  if (!username || !password) {
+    showMessage('authMessage', 'Please enter your username and password.', false);
+    return;
+  }
+
+  setLoginLoading(true, mfaMethod);
+  showMessage(
+    'authMessage',
+    mfaMethod === 'email' ? 'Sending your email verification code...' : 'Checking your login details...',
+    true
+  );
 
   fetch('/api/auth/login', {
     method: 'POST',
@@ -498,9 +525,13 @@ function login() {
     },
     body: JSON.stringify({ username, password, mfaMethod })
   })
-    .then((res) => res.json())
+    .then((res) => res.json().catch(() => ({
+      success: false,
+      message: 'Authentication server returned an invalid response.'
+    })))
     .then((data) => {
       if (!data.success) {
+        setLoginLoading(false);
         showMessage('authMessage', data.message || 'Invalid username, password, or MFA setup.', false);
         return;
       }
@@ -513,6 +544,7 @@ function login() {
       finishAuthenticatedSession(data.user, { username, google: false }, data.sessionToken);
     })
     .catch(() => {
+      setLoginLoading(false);
       showMessage('authMessage', 'Unable to reach the authentication server. Login requires MFA verification.', false);
     });
 }
